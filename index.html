@@ -1,0 +1,963 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gauss-Jordan</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ["Poppins", "sans-serif"],
+            },
+            boxShadow: {
+              neo: "6px 6px 0px 0px rgba(0,0,0,1)",
+              "neo-sm": "3px 3px 0px 0px rgba(0,0,0,1)",
+              "neo-hover": "8px 8px 0px 0px rgba(0,0,0,1)",
+            },
+            keyframes: {
+              pop: {
+                "0%": { transform: "scale(0.8)", opacity: "0" },
+                "70%": { transform: "scale(1.05)", opacity: "1" },
+                "100%": { transform: "scale(1)", opacity: "1" },
+              },
+              shake: {
+                "0%, 100%": { transform: "translateX(0)" },
+                "20%": { transform: "translateX(-8px)" },
+                "40%": { transform: "translateX(8px)" },
+                "60%": { transform: "translateX(-5px)" },
+                "80%": { transform: "translateX(5px)" },
+              },
+              slideUp: {
+                "0%": { opacity: "0", transform: "translateY(24px)" },
+                "100%": { opacity: "1", transform: "translateY(0)" },
+              },
+            },
+            animation: {
+              /* Menggunakan cubic-bezier agar efek pop terasa lebih memantul */
+              pop: "pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards",
+              shake: "shake 0.4s ease-in-out",
+              slideUp:
+                "slideUp 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards",
+            },
+          },
+        },
+      };
+    </script>
+
+    <style>
+      /* ===== CUSTOM NEO-BRUTALISM SCROLLBAR ===== */
+      .neo-scroll::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+      }
+      .neo-scroll::-webkit-scrollbar-track {
+        background: #fff;
+        border-left: 3px solid #000;
+        border-top: 3px solid #000;
+      }
+      .neo-scroll::-webkit-scrollbar-thumb {
+        background: #000;
+        border: 2px solid #000;
+      }
+      .neo-scroll::-webkit-scrollbar-thumb:hover {
+        background: #333;
+      }
+      .neo-scroll::-webkit-scrollbar-corner {
+        background: #000;
+      }
+
+      /* ===== ABOUT MODAL ===== */
+      #aboutModal {
+        transition: opacity 0.3s ease;
+      }
+
+      /* ===== DEV CARD HOVER ===== */
+      .dev-card {
+        transition:
+          transform 0.2s ease,
+          box-shadow 0.2s ease;
+      }
+      .dev-card:hover {
+        transform: translate(-3px, -3px);
+        box-shadow: 9px 9px 0px 0px rgba(0, 0, 0, 1);
+      }
+
+      /* Spinner angka tetap tampil agar bisa naik/turun tanpa mengetik */
+      input[type="number"] {
+        -moz-appearance: number-input;
+      }
+
+      /* ===== SCROLL HINT BADGE ===== */
+      .scroll-hint {
+        animation: pulse 2s infinite;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.4;
+        }
+      }
+    </style>
+  </head>
+
+  <body
+    class="bg-white text-black min-h-screen flex justify-center px-3 py-4 sm:p-6 antialiased selection:bg-black selection:text-white"
+  >
+    <!-- ===================== ERROR TOAST (pojok kanan bawah) ===================== -->
+    <div
+      id="errorToast"
+      class="fixed bottom-5 right-4 z-50 hidden border-4 border-black bg-yellow-300 text-black font-bold px-4 py-3 shadow-neo text-xs sm:text-sm uppercase tracking-wider animate-slideUp flex items-center gap-3 max-w-[calc(100vw-2rem)] sm:max-w-sm w-full sm:w-auto"
+    >
+      <!-- Étiquette neo-brutalism di sudut -->
+      <div
+        class="absolute -top-3 -left-1 bg-black text-white text-[10px] font-extrabold px-2 py-0.5 uppercase tracking-widest"
+      >
+        Error
+      </div>
+      <!-- Ikon warning SVG -->
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        class="w-5 h-5 flex-shrink-0"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        stroke-width="2.5"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
+        />
+      </svg>
+      <span id="errorMsg" class="flex-1 leading-tight">Terjadi kesalahan.</span>
+      <button
+        onclick="closeError()"
+        class="flex-shrink-0 border-2 border-black bg-black text-white w-6 h-6 flex items-center justify-center hover:bg-yellow-300 hover:text-black transition-all"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="w-3 h-3"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          stroke-width="3"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M6 18L18 6M6 6l12 12"
+          />
+        </svg>
+      </button>
+    </div>
+
+    <!-- ===================== ABOUT MODAL ===================== -->
+    <div
+      id="aboutModal"
+      class="fixed inset-0 bg-black bg-opacity-60 z-50 hidden flex items-center justify-center p-4"
+    >
+      <div
+        class="border-4 border-black bg-white shadow-neo w-full max-w-md animate-pop overflow-hidden"
+      >
+        <!-- Header -->
+        <div
+          class="bg-black text-white px-6 py-4 flex items-center justify-between"
+        >
+          <h2 class="font-extrabold uppercase tracking-widest text-lg">
+            About Developers
+          </h2>
+          <button
+            onclick="closeAbout()"
+            class="border-2 border-white text-white font-bold px-2 py-1 hover:bg-white hover:text-black transition-all flex items-center justify-center"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="w-4 h-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="3"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
+        <!-- Body -->
+        <div
+          class="p-4 sm:p-6 space-y-3 overflow-y-auto"
+          style="max-height: calc(100dvh - 140px)"
+        >
+          <p
+            class="text-xs font-bold uppercase tracking-widest text-gray-500 border-b-2 border-black pb-2 mb-4"
+          >
+            Tim Pengembang — Gauss-Jordan Calculator informatika 2c
+          </p>
+
+          <!-- Dev cards -->
+          <div
+            class="dev-card border-2 border-black p-3 flex items-center gap-3 shadow-neo-sm bg-white"
+          >
+            <div
+              class="bg-black text-white font-extrabold w-8 h-8 flex items-center justify-center text-sm flex-shrink-0"
+            >
+              1
+            </div>
+            <div>
+              <p class="font-bold leading-tight">M. Naufal Zam Zami</p>
+              <p class="text-xs text-gray-500 font-mono">6625600072</p>
+            </div>
+          </div>
+
+          <div
+            class="dev-card border-2 border-black p-3 flex items-center gap-3 shadow-neo-sm bg-white"
+          >
+            <div
+              class="bg-black text-white font-extrabold w-8 h-8 flex items-center justify-center text-sm flex-shrink-0"
+            >
+              2
+            </div>
+            <div>
+              <p class="font-bold leading-tight">Rizky Fadillah</p>
+              <p class="text-xs text-gray-500 font-mono">6625600080</p>
+            </div>
+          </div>
+
+          <div
+            class="dev-card border-2 border-black p-3 flex items-center gap-3 shadow-neo-sm bg-white"
+          >
+            <div
+              class="bg-black text-white font-extrabold w-8 h-8 flex items-center justify-center text-sm flex-shrink-0"
+            >
+              3
+            </div>
+            <div>
+              <p class="font-bold leading-tight">Rajendriya Yasid Akbar</p>
+              <p class="text-xs text-gray-500 font-mono">6625600082</p>
+            </div>
+          </div>
+
+          <div
+            class="dev-card border-2 border-black p-3 flex items-center gap-3 shadow-neo-sm bg-white"
+          >
+            <div
+              class="bg-black text-white font-extrabold w-8 h-8 flex items-center justify-center text-sm flex-shrink-0"
+            >
+              4
+            </div>
+            <div>
+              <p class="font-bold leading-tight">Muhammad Rofi'ulhaq</p>
+              <p class="text-xs text-gray-500 font-mono">6625600069</p>
+            </div>
+          </div>
+
+          <div
+            class="dev-card border-2 border-black p-3 flex items-center gap-3 shadow-neo-sm bg-white"
+          >
+            <div
+              class="bg-black text-white font-extrabold w-8 h-8 flex items-center justify-center text-sm flex-shrink-0"
+            >
+              5
+            </div>
+            <div>
+              <p class="font-bold leading-tight">Muhammad Khoosyi Etma Putra</p>
+              <p class="text-xs text-gray-500 font-mono">6625600085</p>
+            </div>
+          </div>
+        </div>
+        <!-- Footer -->
+        <div class="border-t-4 border-black px-6 py-3 bg-gray-50 text-center">
+          <p class="text-xs font-bold uppercase tracking-widest text-gray-400">
+            Matematika · Gauss-Jordan Eliminator
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="w-full max-w-4xl space-y-4 sm:space-y-8">
+      <!-- ===================== HEADER CARD ===================== -->
+      <div class="border-4 border-black p-4 sm:p-6 bg-white shadow-neo">
+        <!-- Title + About button row -->
+        <div
+          class="flex items-center justify-between border-b-4 border-black pb-3 sm:pb-4 mb-5 sm:mb-8 gap-2"
+        >
+          <h2
+            class="font-extrabold text-xl sm:text-3xl uppercase tracking-widest leading-tight"
+          >
+            Gauss-Jordan
+          </h2>
+          <button
+            onclick="openAbout()"
+            class="flex-shrink-0 px-3 sm:px-4 py-2 border-2 border-black bg-black text-white text-[10px] sm:text-xs font-bold uppercase tracking-wider shadow-neo-sm hover:bg-white hover:text-black active:shadow-none active:translate-y-0.5 active:translate-x-0.5 transition-all flex items-center gap-1.5"
+          >
+            <!-- Ikon users SVG -->
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="w-3.5 h-3.5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M17 20h5v-2a4 4 0 00-5-3.87M9 20H4v-2a4 4 0 015-3.87m6-4.13a4 4 0 11-8 0 4 4 0 018 0zm6 0a3 3 0 11-6 0 3 3 0 016 0z"
+              />
+            </svg>
+            <span>About Dev</span>
+          </button>
+        </div>
+
+        <!-- ===== LAYOUT MATRIKS: wireframe 2 baris ===== -->
+        <div class="border-4 border-black shadow-neo mb-5 sm:mb-8">
+          <!-- Baris 1: Kolom | x | Baris -->
+          <div class="grid grid-cols-[1fr_auto_1fr] border-b-4 border-black">
+            <!-- Input Kolom -->
+            <div class="flex flex-col gap-1 p-3 border-r-4 border-black">
+              <label
+                for="cols"
+                class="font-extrabold text-[10px] uppercase tracking-widest text-gray-500"
+                >Kolom</label
+              >
+              <input
+                type="number"
+                id="cols"
+                value="0"
+                min="0"
+                max="50"
+                class="w-full p-2 text-center border-2 border-black font-bold text-2xl focus:outline-none focus:border-4 transition-all bg-white"
+                oninput="clampInput(this)"
+              />
+              <span class="text-[9px] text-gray-400 font-mono">0 – 50</span>
+            </div>
+
+            <!-- Separator x -->
+            <div
+              class="flex items-center justify-center px-4 font-extrabold text-2xl text-gray-300 select-none border-r-4 border-black"
+            >
+              x
+            </div>
+
+            <!-- Input Baris -->
+            <div class="flex flex-col gap-1 p-3">
+              <label
+                for="rows"
+                class="font-extrabold text-[10px] uppercase tracking-widest text-gray-500"
+                >Baris</label
+              >
+              <input
+                type="number"
+                id="rows"
+                value="0"
+                min="0"
+                max="50"
+                class="w-full p-2 text-center border-2 border-black font-bold text-2xl focus:outline-none focus:border-4 transition-all bg-white"
+                oninput="clampInput(this)"
+              />
+              <span class="text-[9px] text-gray-400 font-mono">0 – 50</span>
+            </div>
+          </div>
+
+          <!-- Baris 2: Tombol Buat Matriks full width -->
+          <button
+            onclick="buatMatriks()"
+            class="w-full py-3 px-6 bg-white text-black font-extrabold uppercase tracking-widest text-sm hover:bg-black hover:text-white active:bg-gray-100 transition-all flex items-center justify-center gap-2"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="w-4 h-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M4 6h16M4 10h16M4 14h16M4 18h16"
+              />
+            </svg>
+            Buat Matriks
+          </button>
+        </div>
+
+        <!-- ===== NEO-BRUTALISM SCROLL CONTAINER ===== -->
+        <div id="matrixWrapper" style="display: none" class="mb-5 sm:mb-8">
+          <!-- Label area -->
+          <div
+            class="flex items-center justify-between border-4 border-b-0 border-black bg-black px-3 py-1.5"
+          >
+            <span
+              class="text-white font-extrabold uppercase tracking-widest text-xs"
+              >Matrix Input</span
+            >
+            <span
+              class="scroll-hint text-white text-[10px] font-bold uppercase tracking-wider flex items-center gap-1"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="w-3 h-3"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="3"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
+              Scroll
+            </span>
+          </div>
+          <!-- Scroll body -->
+          <div
+            class="neo-scroll overflow-auto border-4 border-black shadow-neo bg-white"
+            style="max-height: min(420px, 50vh)"
+          >
+            <div id="matrixInput" class="text-center p-2"></div>
+          </div>
+          <!-- Bottom bar -->
+          <div
+            class="border-4 border-t-2 border-black bg-yellow-300 px-3 py-1.5 flex items-center gap-2"
+          >
+            <!-- Ikon scroll horizontal SVG -->
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="w-3.5 h-3.5 flex-shrink-0"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M8 7h8M8 12h8M8 17h8"
+              />
+            </svg>
+            <span class="text-[10px] font-extrabold uppercase tracking-widest"
+              >Geser untuk melihat semua kolom</span
+            >
+          </div>
+        </div>
+
+        <!-- Tombol Hitung + Refresh (sejajar, rapi) -->
+        <div class="flex flex-col sm:flex-row gap-3 justify-center">
+          <!-- Tombol Refresh -->
+          <button
+            onclick="refresh()"
+            class="w-full sm:w-auto px-8 py-3 border-4 border-black bg-white text-black font-extrabold uppercase tracking-widest text-base shadow-neo hover:bg-black hover:text-white active:shadow-none active:translate-y-1 active:translate-x-1 transition-all flex items-center justify-center gap-2"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="w-5 h-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
+            </svg>
+            Refresh
+          </button>
+
+          <!-- Tombol Hitung -->
+          <button
+            onclick="hitung()"
+            class="w-full sm:w-auto px-10 py-3 border-4 border-black bg-black text-white font-extrabold uppercase tracking-widest text-base shadow-neo hover:bg-white hover:text-black active:shadow-none active:translate-y-1 active:translate-x-1 transition-all flex items-center justify-center gap-2"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="w-5 h-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M9 7l6 5-6 5V7z"
+              />
+            </svg>
+            Hitung
+          </button>
+        </div>
+      </div>
+
+      <div class="border-4 border-black p-4 sm:p-6 bg-white shadow-neo">
+        <h3
+          class="text-center font-extrabold text-xl sm:text-2xl mb-5 sm:mb-6 uppercase tracking-widest border-b-4 border-black pb-2"
+        >
+          Proses
+        </h3>
+        <div id="output" class="space-y-4 sm:space-y-6"></div>
+      </div>
+
+      <div class="border-4 border-black p-4 sm:p-6 bg-white shadow-neo">
+        <h3
+          class="text-center font-extrabold text-xl sm:text-2xl mb-5 sm:mb-6 uppercase tracking-widest border-b-4 border-black pb-2"
+        >
+          Penjabaran &amp; HP
+        </h3>
+        <div
+          id="solution"
+          class="leading-relaxed font-medium text-base sm:text-lg"
+        ></div>
+      </div>
+    </div>
+
+    <script>
+      // =====================
+      // ERROR HANDLING UTILS
+      // =====================
+      const MAX_SIZE = 50;
+
+      // =====================
+      // REFRESH
+      // =====================
+      function refresh() {
+        // Reset matriks input
+        document.getElementById("matrixInput").innerHTML = "";
+        document.getElementById("matrixWrapper").style.display = "none";
+        // Reset output
+        document.getElementById("output").innerHTML = "";
+        document.getElementById("solution").innerHTML = "";
+        // Reset dimensi ke default
+        document.getElementById("rows").value = 0;
+        document.getElementById("cols").value = 0;
+        closeError();
+      }
+
+      function showError(msg) {
+        const toast = document.getElementById("errorToast");
+        document.getElementById("errorMsg").textContent = msg;
+        toast.classList.remove("hidden");
+        // Auto hide setelah 4 detik
+        clearTimeout(window._errTimer);
+        window._errTimer = setTimeout(closeError, 4000);
+      }
+
+      function closeError() {
+        document.getElementById("errorToast").classList.add("hidden");
+      }
+
+      function clampInput(el) {
+        let val = parseInt(el.value);
+        // Biarkan field kosong atau 0 sementara (validasi saat klik Buat Matriks)
+        if (isNaN(val) || val < 0) {
+          el.value = 0;
+          return;
+        }
+        if (val > MAX_SIZE) {
+          el.value = MAX_SIZE;
+          showError(
+            `Ukuran maksimal adalah ${MAX_SIZE}. Nilai dikembalikan ke ${MAX_SIZE}.`,
+          );
+        }
+      }
+
+      function validateDimensions(r, c) {
+        if (isNaN(r) || isNaN(c)) {
+          showError("Baris dan kolom harus berupa angka.");
+          return false;
+        }
+        if (r <= 0 || c <= 0) {
+          // Pesan spesifik sesuai mana yang 0
+          if (r <= 0 && c <= 0) {
+            showError(
+              "Baris dan kolom tidak boleh 0. Masukkan angka minimal 1.",
+            );
+          } else if (r <= 0) {
+            showError("Jumlah baris tidak boleh 0. Masukkan angka minimal 1.");
+          } else {
+            showError("Jumlah kolom tidak boleh 0. Masukkan angka minimal 1.");
+          }
+          return false;
+        }
+        if (r > MAX_SIZE || c > MAX_SIZE) {
+          showError(`Ukuran matriks maksimal ${MAX_SIZE}\u00d7${MAX_SIZE}.`);
+          return false;
+        }
+        return true;
+      }
+
+      // =====================
+      // ABOUT MODAL
+      // =====================
+      function openAbout() {
+        document.getElementById("aboutModal").classList.remove("hidden");
+      }
+      function closeAbout() {
+        document.getElementById("aboutModal").classList.add("hidden");
+      }
+      // Tutup modal jika klik overlay
+      document
+        .getElementById("aboutModal")
+        .addEventListener("click", function (e) {
+          if (e.target === this) closeAbout();
+        });
+
+      // =====================
+      // PECAHAN
+      // =====================
+      function gcd(a, b) {
+        return b === 0 ? a : gcd(b, a % b);
+      }
+
+      function simplify(f) {
+        let g = gcd(Math.abs(f.num), Math.abs(f.den));
+        f.num /= g;
+        f.den /= g;
+        if (f.den < 0) {
+          f.num *= -1;
+          f.den *= -1;
+        }
+        return f;
+      }
+
+      function makeFrac(n) {
+        return { num: n, den: 1 };
+      }
+
+      function add(a, b) {
+        return simplify({
+          num: a.num * b.den + b.num * a.den,
+          den: a.den * b.den,
+        });
+      }
+      function sub(a, b) {
+        return simplify({
+          num: a.num * b.den - b.num * a.den,
+          den: a.den * b.den,
+        });
+      }
+      function mul(a, b) {
+        return simplify({ num: a.num * b.num, den: a.den * b.den });
+      }
+      function div(a, b) {
+        return simplify({ num: a.num * b.den, den: a.den * b.num });
+      }
+
+      function str(f) {
+        if (f.den === 1) return f.num;
+        return f.num + "/" + f.den;
+      }
+
+      // =====================
+      // BUAT MATRIX
+      // =====================
+      function buatMatriks() {
+        let r = parseInt(document.getElementById("rows").value);
+        let c = parseInt(document.getElementById("cols").value);
+
+        if (!validateDimensions(r, c)) {
+          // Shake input untuk feedback visual
+          const rowsEl = document.getElementById("rows");
+          const colsEl = document.getElementById("cols");
+          rowsEl.classList.add("animate-shake");
+          colsEl.classList.add("animate-shake");
+          setTimeout(() => {
+            rowsEl.classList.remove("animate-shake");
+            colsEl.classList.remove("animate-shake");
+          }, 500);
+          return; // Jangan reset form, biarkan tetap
+        }
+
+        // Tentukan ukuran cell berdasarkan jumlah kolom
+        const cellW = c > 20 ? "w-10" : c > 10 ? "w-12" : "w-16";
+        const cellP = c > 20 ? "p-0.5" : c > 10 ? "p-1" : "p-1";
+        const tdP = c > 20 ? "p-1" : "p-2";
+
+        // Tampilkan wrapper scroll
+        const wrapper = document.getElementById("matrixWrapper");
+        wrapper.style.display = "";
+
+        // Animasi pop + Shadow tebal untuk Neo Brutalism
+        let html =
+          "<table class='border-collapse mx-auto my-4 animate-pop border-4 border-black shadow-neo bg-white'>";
+        for (let i = 0; i < r; i++) {
+          html += "<tr>";
+          for (let j = 0; j < c; j++) {
+            html += `<td class="border-2 border-black ${tdP} text-center">
+                    <input type="number" id="m${i}${j}" value="0" class="${cellW} ${cellP} text-center font-bold border-b-2 border-transparent focus:border-black focus:outline-none transition-colors bg-transparent">
+                   </td>`;
+          }
+          html += "</tr>";
+        }
+        html += "</table>";
+
+        matrixInput.innerHTML = html;
+      }
+
+      // =====================
+      // TAMPIL MATRIX
+      // =====================
+      function tampil(m) {
+        let html =
+          "<table class='border-collapse mx-auto mt-4 mb-2 border-4 border-black shadow-neo-sm bg-white'>";
+        for (let i = 0; i < m.length; i++) {
+          html += "<tr>";
+          for (let j = 0; j < m[0].length; j++) {
+            html += `<td class="border-2 border-black p-1.5 sm:p-3 min-w-[44px] sm:min-w-[60px] text-center font-bold text-sm sm:text-base">${str(m[i][j])}</td>`;
+          }
+          html += "</tr>";
+        }
+        html += "</table>";
+        return html;
+      }
+
+      // =====================
+      // PENJABARAN + HP
+      // =====================
+      function solusiHP(m) {
+        let r = m.length;
+        let c = m[0].length;
+        let varCount = c - 1;
+
+        let pivotCol = new Array(varCount).fill(-1);
+
+        for (let i = 0; i < r; i++) {
+          for (let j = 0; j < varCount; j++) {
+            if (m[i][j].num === 1) {
+              pivotCol[j] = i;
+              break;
+            }
+          }
+        }
+
+        let bebas = [];
+        for (let j = 0; j < varCount; j++) {
+          if (pivotCol[j] === -1) bebas.push(j);
+        }
+
+        let html =
+          "<div class='mb-6'><span class='font-extrabold uppercase tracking-wide border-b-2 border-black'>Penjabaran:</span><br><div class='mt-2 p-4 border-2 border-black bg-gray-50 shadow-neo-sm'>";
+
+        for (let j = 0; j < varCount; j++) {
+          if (pivotCol[j] !== -1) {
+            let i = pivotCol[j];
+            let exp = `x${j + 1} = ${str(m[i][c - 1])}`;
+
+            for (let k = 0; k < varCount; k++) {
+              if (k !== j && m[i][k].num !== 0) {
+                let coef = m[i][k];
+                let tanda = coef.num > 0 ? " - " : " + ";
+                exp +=
+                  tanda +
+                  str({ num: Math.abs(coef.num), den: coef.den }) +
+                  `x${k + 1}`;
+              }
+            }
+            html += `<div class='font-bold'>${exp}</div>`;
+          }
+        }
+        html += "</div></div>";
+
+        if (bebas.length > 0) {
+          html +=
+            "<div class='mb-6'><span class='font-extrabold uppercase tracking-wide border-b-2 border-black'>Misal:</span><br><div class='mt-2 p-4 border-2 border-black bg-gray-50 shadow-neo-sm'>";
+          let simbol = ["u", "v", "w", "t"];
+          let map = {};
+
+          bebas.forEach((idx, i) => {
+            map[idx] = simbol[i];
+            html += `<div class='font-bold'>x${idx + 1} = ${simbol[i]}</div>`;
+          });
+          html += "</div></div>";
+
+          html +=
+            "<div class='mb-6'><span class='font-extrabold uppercase tracking-wide border-b-2 border-black'>Substitusi:</span><br><div class='mt-2 p-4 border-2 border-black bg-gray-50 shadow-neo-sm'>";
+
+          for (let j = 0; j < varCount; j++) {
+            if (pivotCol[j] !== -1) {
+              let i = pivotCol[j];
+              let exp = `x${j + 1} = ${str(m[i][c - 1])}`;
+
+              for (let k = 0; k < varCount; k++) {
+                if (k !== j && m[i][k].num !== 0) {
+                  let coef = m[i][k];
+                  let tanda = coef.num > 0 ? " - " : " + ";
+                  let varb = map[k] ? map[k] : `x${k + 1}`;
+                  exp +=
+                    tanda +
+                    str({ num: Math.abs(coef.num), den: coef.den }) +
+                    varb;
+                }
+              }
+              html += `<div class='font-bold'>${exp}</div>`;
+            }
+          }
+          html += "</div></div>";
+
+          html +=
+            "<div class='mt-6'><span class='font-extrabold uppercase tracking-wide border-b-2 border-black text-lg sm:text-xl'>HP:</span><br><div class='mt-3 p-3 sm:p-4 border-4 border-black bg-black text-white font-bold text-base sm:text-xl shadow-neo overflow-x-auto'>{ (";
+          let hasil = [];
+
+          for (let j = 0; j < varCount; j++) {
+            if (pivotCol[j] !== -1) {
+              let i = pivotCol[j];
+              let exp = `${str(m[i][c - 1])}`;
+
+              for (let k = 0; k < varCount; k++) {
+                if (k !== j && m[i][k].num !== 0) {
+                  let coef = m[i][k];
+                  let tanda = coef.num > 0 ? " - " : " + ";
+                  let varb = map[k] ? map[k] : `x${k + 1}`;
+                  exp +=
+                    tanda +
+                    str({ num: Math.abs(coef.num), den: coef.den }) +
+                    varb;
+                }
+              }
+              hasil.push(exp);
+            } else {
+              hasil.push(map[j]);
+            }
+          }
+
+          html += hasil.join(", ") + ") }</div></div>";
+        } else {
+          html +=
+            "<div class='mb-6'><span class='font-extrabold uppercase tracking-wide border-b-2 border-black'>Solusi Unik:</span><br><div class='mt-2 p-4 border-2 border-black bg-gray-50 shadow-neo-sm'>";
+
+          for (let j = 0; j < varCount; j++) {
+            let i = pivotCol[j];
+            html += `<div class='font-bold'>x${j + 1} = ${str(m[i][c - 1])}</div>`;
+          }
+          html += "</div></div>";
+
+          html +=
+            "<div class='mt-6'><span class='font-extrabold uppercase tracking-wide border-b-2 border-black text-lg sm:text-xl'>HP:</span><br><div class='mt-3 p-3 sm:p-4 border-4 border-black bg-black text-white font-bold text-base sm:text-xl shadow-neo overflow-x-auto'>{ (";
+          html += pivotCol.map((row) => str(m[row][c - 1])).join(", ");
+          html += ") }</div></div>";
+        }
+
+        return html;
+      }
+
+      // =====================
+      // GAUSS JORDAN
+      // =====================
+      function hitung() {
+        let r = parseInt(document.getElementById("rows").value);
+        let c = parseInt(document.getElementById("cols").value);
+
+        // Validasi dimensi
+        if (!validateDimensions(r, c)) return;
+
+        // Cek apakah matriks sudah dibuat
+        const firstCell = document.getElementById("m00");
+        if (!firstCell) {
+          showError("Buat matriks terlebih dahulu sebelum menghitung!");
+          return;
+        }
+
+        let m = [];
+
+        for (let i = 0; i < r; i++) {
+          m[i] = [];
+          for (let j = 0; j < c; j++) {
+            const cell = document.getElementById(`m${i}${j}`);
+            if (!cell) {
+              showError(
+                `Input matriks tidak lengkap. Silakan buat ulang matriks.`,
+              );
+              return;
+            }
+            const val = parseInt(cell.value);
+            if (isNaN(val)) {
+              showError(
+                `Nilai pada baris ${i + 1}, kolom ${j + 1} bukan angka yang valid.`,
+              );
+              return;
+            }
+            m[i][j] = makeFrac(val);
+          }
+        }
+
+        let out = "";
+        let lead = 0;
+
+        // Class Brutalist untuk box setiap step — responsive padding
+        const stepClass =
+          "border-4 border-black p-3 sm:p-5 bg-white shadow-neo overflow-x-auto";
+
+        for (let i = 0; i < r; i++) {
+          if (lead >= c) break;
+
+          let k = i;
+
+          while (m[k][lead].num === 0) {
+            k++;
+            if (k === r) {
+              k = i;
+              lead++;
+              if (lead === c) break;
+            }
+          }
+
+          if (lead === c) break;
+
+          if (k !== i) {
+            [m[i], m[k]] = [m[k], m[i]];
+            out += `<div class="${stepClass}"><span class='font-extrabold bg-black text-white px-2 py-1 uppercase text-sm border-2 border-black'>Swap R${i + 1} ↔ R${k + 1}</span>${tampil(m)}</div>`;
+          }
+
+          let pivot = m[i][lead];
+
+          if (pivot.num !== 0) {
+            for (let j = 0; j < c; j++) {
+              m[i][j] = div(m[i][j], pivot);
+            }
+            out += `<div class="${stepClass}"><span class='font-extrabold bg-black text-white px-2 py-1 uppercase text-sm border-2 border-black'>R${i + 1} ÷ ${str(pivot)}</span>${tampil(m)}</div>`;
+          }
+
+          for (let x = 0; x < r; x++) {
+            if (x !== i) {
+              let f = m[x][lead];
+
+              for (let j = 0; j < c; j++) {
+                m[x][j] = sub(m[x][j], mul(f, m[i][j]));
+              }
+
+              out += `<div class="${stepClass}"><span class='font-extrabold bg-black text-white px-2 py-1 uppercase text-sm border-2 border-black'>R${x + 1} - (${str(f)})R${i + 1}</span>${tampil(m)}</div>`;
+            }
+          }
+
+          lead++;
+        }
+
+        out += `<div class="${stepClass}"><span class='font-extrabold bg-black text-white px-2 py-1 uppercase text-sm border-2 border-black'>RREF (Reduced Row Echelon Form)</span>${tampil(m)}</div>`;
+
+        document.getElementById("output").innerHTML = out;
+        document.getElementById("solution").innerHTML = solusiHP(m);
+      }
+    </script>
+  </body>
+</html>
