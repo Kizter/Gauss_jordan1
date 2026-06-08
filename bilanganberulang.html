@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bilangan Berulang ke Pecahan</title>
+
+<style>
+body{
+    font-family:Arial,sans-serif;
+    background:#f5f5f5;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    min-height:100vh;
+}
+
+.card{
+    width:600px;
+    max-width:95%;
+    background:white;
+    border:4px solid black;
+    padding:25px;
+    box-shadow:8px 8px 0 black;
+}
+
+h2{
+    text-align:center;
+    margin-bottom:20px;
+}
+
+input{
+    width:100%;
+    padding:12px;
+    border:2px solid black;
+    margin-bottom:15px;
+    font-size:16px;
+    box-sizing:border-box;
+}
+
+button{
+    width:100%;
+    padding:12px;
+    background:black;
+    color:white;
+    border:none;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+button:hover{
+    opacity:.9;
+}
+
+#hasil{
+    margin-top:20px;
+    border:2px solid black;
+    padding:15px;
+    background:#fafafa;
+    line-height:1.8;
+}
+
+.langkah{
+    font-family:"Courier New",monospace;
+    white-space:pre-line;
+}
+
+.hasil{
+    margin-top:15px;
+    padding:15px;
+    background:black;
+    color:white;
+    font-size:20px;
+    font-weight:bold;
+}
+.back-btn{
+    display:inline-block;
+    margin-bottom:15px;
+    padding:10px 15px;
+    border:2px solid black;
+    text-decoration:none;
+    color:black;
+    font-weight:bold;
+    background:white;
+    box-shadow:3px 3px 0 black;
+}
+
+.back-btn:hover{
+    background:black;
+    color:white;
+}
+</style>
+</head>
+<body>
+
+<div class="card">
+    <a href="index.html" class="back-btn">
+← Kembali
+</a>
+
+<h2>Bilangan Berulang → Pecahan</h2>
+
+<input
+type="text"
+id="ulang"
+placeholder="Contoh: 0,333333...">
+
+<button onclick="konversi()">
+Konversi
+</button>
+
+<div id="hasil">
+Masukkan bilangan berulang.
+</div>
+
+</div>
+
+<script>
+
+function gcd(a,b){
+    return b===0 ? a : gcd(b,a%b);
+}
+
+function konversi(){
+
+    let input =
+    document.getElementById("ulang")
+    .value
+    .trim();
+
+    input = input.replace(",", ".");
+
+    if(!input.includes(".")){
+        hasil.innerHTML =
+        "Gunakan format seperti 0,333333...";
+        return;
+    }
+
+    let bagian = input.split(".");
+
+    if(bagian.length < 2){
+        hasil.innerHTML =
+        "Format tidak valid.";
+        return;
+    }
+
+    let desimal = bagian[1];
+
+    desimal = desimal.replace(/\./g,"");
+    desimal = desimal.replace(/\s/g,"");
+    desimal = desimal.replace(/[^0-9]/g,"");
+
+    if(desimal.length === 0){
+        hasil.innerHTML =
+        "Masukkan angka berulang.";
+        return;
+    }
+
+    let digit = desimal[0];
+    let banyakDigit = 1;
+
+    let pembilang = parseInt(digit);
+    let penyebut = 9;
+
+    let fpb = gcd(pembilang,penyebut);
+
+    let p = pembilang/fpb;
+    let q = penyebut/fpb;
+
+    document.getElementById("hasil").innerHTML =
+
+    `<div class="langkah">
+
+<b>Misal :</b>
+
+x = 0,${digit}${digit}${digit}${digit}${digit}${digit}...
+
+10x = ${digit},${digit}${digit}${digit}${digit}${digit}${digit}...
+x  = 0,${digit}${digit}${digit}${digit}${digit}${digit}...
+-------------------------
+
+9x = ${digit}
+
+x = ${digit}/9
+
+x = ${p}/${q}
+
+</div>
+
+<div class="hasil">
+
+Jadi :
+
+0,${digit}${digit}${digit}${digit}${digit}${digit}...
+=
+${p}/${q}
+
+</div>`;
+}
+
+</script>
+
+</body>
+</html>
