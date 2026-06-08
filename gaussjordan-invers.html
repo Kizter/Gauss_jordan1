@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gauss-Jordan Neo Brutalism - Ultimate Mobile</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: { sans: ['Poppins', 'sans-serif'] },
+        boxShadow: {
+          'neo': '4px 4px 0px 0px rgba(0,0,0,1)',
+          'neo-sm': '2px 2px 0px 0px rgba(0,0,0,1)',
+        }
+      }
+    }
+  }
+</script>
+
+<style>
+    .custom-scroll::-webkit-scrollbar { height: 6px; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: black; border-radius: 10px; }
+    input:focus { outline: none; border-color: black !important; }
+</style>
+</head>
+
+<body class="bg-white text-black min-h-screen flex justify-center p-3 sm:p-6 antialiased selection:bg-black selection:text-white">
+
+<div class="w-full max-w-4xl">
+
+    <!-- Header & Setup -->
+    <div class="border-4 border-black p-4 sm:p-6 mb-6 bg-white shadow-neo">
+        <h2 class="text-center font-extrabold text-xl sm:text-3xl mb-6 uppercase tracking-widest border-b-4 border-black pb-4">Gauss-Jordan Smart Solver</h2>
+
+        <div class="flex flex-col sm:flex-row justify-center gap-4 mb-8 items-center">
+            <div class="flex gap-4">
+                <div class="flex items-center gap-2">
+                    <label class="font-bold uppercase text-xs">Baris:</label>
+                    <input type="number" id="rows" value="3" class="w-12 p-2 text-center border-2 border-black font-bold shadow-neo-sm">
+                </div>
+                <div class="flex items-center gap-2">
+                    <label class="font-bold uppercase text-xs">Kolom:</label>
+                    <input type="number" id="cols" value="3" class="w-12 p-2 text-center border-2 border-black font-bold shadow-neo-sm">
+                </div>
+            </div>
+            <button onclick="buatMatriks()" class="w-full sm:w-auto px-6 py-2 border-2 border-black bg-white text-black font-bold uppercase text-sm shadow-neo-sm active:translate-y-1 transition-all">
+                Buat Matriks
+            </button>
+        </div>
+
+        <div id="matrixInputContainer" class="overflow-x-auto custom-scroll pb-4 mb-8">
+            <div id="matrixInput" class="inline-block min-w-full text-center"></div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row justify-center gap-3">
+            <button onclick="hitung('gauss')" class="w-full sm:w-auto px-8 py-3 border-4 border-black bg-black text-white font-extrabold uppercase text-sm shadow-neo active:translate-y-1 transition-all">
+                Hitung SPL
+            </button>
+            <button id="btnInvers" onclick="hitung('invers')" class="w-full sm:w-auto px-8 py-3 border-4 border-black bg-yellow-400 text-black font-extrabold uppercase text-sm shadow-neo active:translate-y-1 transition-all">
+                Cari Invers
+            </button>
+        </div>
+        <p class="text-[10px] text-center mt-4 font-bold text-gray-500 italic uppercase italic">Bisa input pecahan (1/2), angka negatif (-5), atau huruf.</p>
+    </div>
+
+    <!-- Output Proses -->
+    <div class="border-4 border-black p-4 sm:p-6 mb-6 bg-white shadow-neo">
+        <h3 class="text-center font-extrabold text-lg uppercase border-b-4 border-black pb-2 mb-6">Langkah Pengerjaan</h3>
+        <div id="output" class="space-y-6"></div>
+    </div>
+
+    <!-- Hasil Akhir -->
+    <div class="border-4 border-black p-4 sm:p-6 bg-white shadow-neo mb-10">
+        <h3 class="text-center font-extrabold text-lg uppercase border-b-4 border-black pb-2 mb-6">Hasil & Penjabaran</h3>
+        <div id="solution" class="leading-relaxed font-medium text-sm sm:text-base break-words"></div>
+    </div>
+
+</div>
+
+<script>
+// --- UTILS PECAHAN ---
+function gcd(a, b){ return b===0 ? a : gcd(b, a%b); }
+function simplify(f){
+    if(f.num === 0) return {num:0, den:1};
+    let g = gcd(Math.abs(f.num), Math.abs(f.den));
+    f.num/=g; f.den/=g;
+    if(f.den<0){ f.num*=-1; f.den*=-1; }
+    return f;
+}
+function makeFrac(n){ return {num:n, den:1}; }
+function add(a,b){ return simplify({num:a.num*b.den+b.num*a.den, den:a.den*b.den}); }
+function sub(a,b){ return simplify({num:a.num*b.den-b.num*a.den, den:a.den*b.den}); }
+function mul(a,b){ return simplify({num:a.num*b.num, den:a.den*b.den}); }
+function div(a,b){ 
+    if(b.num === 0) return {num:0, den:1};
+    return simplify({num:a.num*b.den, den:a.den*b.num}); 
+}
+function str(f){
+    if(f.den===1) return f.num.toString();
+    return f.num + "/" + f.den;
+}
+
+// --- CORE LOGIC ---
+function buatMatriks(){
+    let r = parseInt(rows.value);
+    let c = parseInt(cols.value);
+    let html="<table class='border-collapse mx-auto border-4 border-black shadow-neo bg-white'>";
+    for(let i=0;i<r;i++){
+        html+="<tr>";
+        for(let j=0;j<c;j++){
+            html+=`<td class="border-2 border-black p-1">
+                    <input type="text" id="m${i}${j}" value="0" inputmode="text" 
+                           class="w-14 sm:w-20 p-2 text-center font-bold bg-transparent text-sm sm:text-base">
+                   </td>`;
+        }
+        html+="</tr>";
+    }
+    html+="</table>";
+    matrixInput.innerHTML = html;
+    document.getElementById('btnInvers').style.display = (r === c) ? 'inline-block' : 'none';
+}
+
+function parseInput(val) {
+    val = val.trim();
+    if(val.includes('/')) {
+        let parts = val.split('/');
+        return simplify({num: parseInt(parts[0]) || 0, den: parseInt(parts[1]) || 1});
+    }
+    return makeFrac(parseInt(val) || 0);
+}
+
+function hitung(mode){
+    let r=parseInt(rows.value), c=parseInt(cols.value), m=[];
+
+    for(let i=0;i<r;i++){
+        m[i]=[];
+        for(let j=0;j<c;j++){
+            m[i][j] = parseInput(document.getElementById(`m${i}${j}`).value);
+        }
+        if(mode === 'invers'){
+            for(let j=0; j<r; j++) m[i][c+j] = (i === j) ? makeFrac(1) : makeFrac(0);
+        }
+    }
+
+    let workingCols = (mode === 'invers') ? c * 2 : c;
+    let out = "", lead = 0;
+
+    for(let i=0; i<r; i++){
+        if(lead >= c) break;
+        
+        // --- SMART PIVOT LOGIC ---
+        let pivotRow = i;
+        let foundOne = false;
+        for(let k = i; k < r; k++) {
+            if(m[k][lead].num === 1 && m[k][lead].den === 1) { pivotRow = k; foundOne = true; break; }
+        }
+        if(!foundOne) {
+            let k = i;
+            while(m[k][lead].num === 0){
+                k++;
+                if(k === r){ k = i; lead++; if(lead === c) break; }
+            }
+            pivotRow = k;
+        }
+        if(lead === c) break;
+
+        if(pivotRow !== i){
+            [m[i], m[pivotRow]] = [m[pivotRow], m[i]];
+            out += renderStep(`Tukar Baris R${i+1} ↔ R${pivotRow+1} (Prioritas Pivot 1)`, m, mode, c);
+        }
+
+        let pivot = m[i][lead];
+        if(pivot.num !== 0){
+            if(!(pivot.num === 1 && pivot.den === 1)) {
+                for(let j=0; j<workingCols; j++) m[i][j] = div(m[i][j], pivot);
+                out += renderStep(`Baris R${i+1} ÷ ${str(pivot)}`, m, mode, c);
+            }
+        }
+
+        for(let x=0; x<r; x++){
+            if(x !== i){
+                let f = m[x][lead];
+                if(f.num !== 0) {
+                    for(let j=0; j<workingCols; j++) m[x][j] = sub(m[x][j], mul(f, m[i][j]));
+                    out += renderStep(`R${x+1} - (${str(f)})R${i+1}`, m, mode, c);
+                }
+            }
+        }
+        lead++;
+    }
+    output.innerHTML = out;
+    mode === 'invers' ? solusiInvers(m, r, c) : solution.innerHTML = solusiHP(m);
+}
+
+function renderStep(label, m, mode, c){
+    return `<div class="border-2 border-black p-3 bg-white shadow-neo-sm overflow-hidden animate-pop">
+                <span class='inline-block mb-3 font-extrabold bg-black text-white px-2 py-1 uppercase text-[10px]'>${label}</span>
+                ${tampilMatriks(m, mode==='invers', c)}
+            </div>`;
+}
+
+function tampilMatriks(m, isInverse, originalCols){
+    let html="<div class='overflow-x-auto custom-scroll pb-2'><table class='border-collapse mx-auto border-2 border-black bg-white'>";
+    for(let i=0;i<m.length;i++){
+        html+="<tr>";
+        for(let j=0;j<m[i].length;j++){
+            let bClass = (isInverse && j === originalCols) ? "border-l-4 border-double border-black" : "border border-black";
+            html+=`<td class="${bClass} p-2 min-w-[70px] text-center font-bold text-xs sm:text-sm whitespace-nowrap">${str(m[i][j])}</td>`;
+        }
+        html+="</tr>";
+    }
+    html+="</table></div>";
+    return html;
+}
+
+function solusiHP(m){
+    let r = m.length, c = m[0].length, varCount = c - 1, pivotCol = new Array(varCount).fill(-1);
+    for(let i=0;i<r;i++) {
+        for(let j=0;j<varCount;j++) { if(m[i][j].num===1){ pivotCol[j]=i; break; } }
+    }
+
+    let html="<div class='mb-4 font-bold uppercase text-xs border-b border-black'>Penjabaran:</div><div class='space-y-1 mb-6'>";
+    for(let j=0;j<varCount;j++){
+        if(pivotCol[j]!==-1){
+            let i=pivotCol[j], exp=`x${j+1} = ${str(m[i][c-1])}`;
+            for(let k=0;k<varCount;k++){
+                if(k!==j && m[i][k].num!==0){
+                    let coef=m[i][k], t=coef.num>0?" - ":" + ";
+                    exp+=t+str({num:Math.abs(coef.num),den:coef.den})+`x${k+1}`;
+                }
+            }
+            html+=`<div class='font-bold bg-gray-100 p-2 border border-black'>${exp}</div>`;
+        }
+    }
+    html+="</div><div class='p-4 bg-black text-white shadow-neo'>";
+    let resArr = [];
+    for(let j=0;j<varCount;j++){
+        if(pivotCol[j]!==-1){
+            let i=pivotCol[j], res=`${str(m[i][c-1])}`;
+            for(let k=0;k<varCount;k++){
+                if(k!==j && m[i][k].num!==0){
+                    let coef=m[i][k], t=coef.num>0?"-":"+";
+                    res+=` ${t} ${str({num:Math.abs(coef.num),den:coef.den})}x${k+1}`;
+                }
+            }
+            resArr.push(res);
+        } else { resArr.push(`x${j+1}`); }
+    }
+    html += `<div class='text-lg font-black'>HP = { (${resArr.join(", ")}) }</div></div>`;
+    return html;
+}
+
+function solusiInvers(m, r, c){
+    let isIdentitas = true;
+    for(let i=0; i<r; i++) if(m[i][i].num !== 1) isIdentitas = false;
+    if(!isIdentitas){
+        solution.innerHTML = "<div class='p-4 bg-red-600 text-white font-bold border-4 border-black'>SINGULAR (TIDAK ADA INVERS)</div>";
+        return;
+    }
+    let inv = [];
+    for(let i=0; i<r; i++){ inv[i] = []; for(let j=0; j<c; j++) inv[i][j] = m[i][j+c]; }
+    solution.innerHTML = `<div class='p-2 bg-yellow-400 border-4 border-black shadow-neo'>${tampilMatriks(inv)}</div>`;
+}
+
+buatMatriks();
+</script>
+</body>
+</html>
