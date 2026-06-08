@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kalkulator Limit</title>
+
+<style>
+body{
+    font-family:Arial,sans-serif;
+    background:#f5f5f5;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    min-height:100vh;
+}
+
+.card{
+    width:800px;
+    max-width:95%;
+    background:white;
+    border:4px solid black;
+    padding:25px;
+    box-shadow:8px 8px 0 black;
+}
+
+.back{
+    display:inline-block;
+    margin-bottom:15px;
+    padding:10px 15px;
+    border:2px solid black;
+    text-decoration:none;
+    color:black;
+    font-weight:bold;
+}
+
+.back:hover{
+    background:black;
+    color:white;
+}
+
+h2{
+    text-align:center;
+}
+
+label{
+    font-weight:bold;
+}
+
+input{
+    width:100%;
+    padding:12px;
+    margin:10px 0 15px;
+    border:2px solid black;
+    box-sizing:border-box;
+}
+
+button{
+    width:100%;
+    padding:12px;
+    background:black;
+    color:white;
+    border:none;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+#hasil{
+    margin-top:20px;
+    padding:15px;
+    border:2px solid black;
+    background:#fafafa;
+    line-height:1.8;
+}
+
+.hasil{
+    margin-top:15px;
+    background:black;
+    color:white;
+    padding:15px;
+    font-size:20px;
+    font-weight:bold;
+}
+</style>
+</head>
+<body>
+
+<div class="card">
+
+<a href="index.html" class="back">
+← Kembali
+</a>
+
+<h2>Kalkulator Limit Dengan Definisi Turunan</h2>
+
+<label>Rumus Limit</label>
+<input
+type="text"
+id="rumus"
+value="(f(x+h)-f(x))/h">
+
+<label>f(x)</label>
+<input
+type="text"
+id="fungsi"
+placeholder="Contoh: x, x^2, 3x, 3x^2, 5">
+
+<button onclick="hitung()">
+Hitung
+</button>
+
+<div id="hasil">
+Masukkan fungsi terlebih dahulu.
+</div>
+
+</div>
+
+<script>
+
+function hitung(){
+
+    let f =
+    document.getElementById("fungsi")
+    .value
+    .trim()
+    .toLowerCase()
+    .replace(/\s/g,'');
+
+    let html="";
+
+    if(f==="x"){
+
+        html=`
+        <b>Diketahui:</b><br>
+        f(x)=x<br>
+        f(x+h)=x+h<br><br>
+
+        lim h→0 [(x+h)-x]/h<br><br>
+
+        = lim h→0 h/h<br><br>
+
+        = lim h→0 1<br><br>
+
+        <div class="hasil">
+        Hasil = 1
+        </div>
+        `;
+    }
+
+    else if(f==="3x"){
+
+        html=`
+        <b>Diketahui:</b><br>
+        f(x)=3x<br>
+        f(x+h)=3(x+h)<br><br>
+
+        lim h→0 [3(x+h)-3x]/h<br><br>
+
+        = lim h→0 [3x+3h-3x]/h<br><br>
+
+        = lim h→0 3h/h<br><br>
+
+        = lim h→0 3<br><br>
+
+        <div class="hasil">
+        Hasil = 3
+        </div>
+        `;
+    }
+
+    else if(f==="x^2"){
+
+        html=`
+        <b>Diketahui:</b><br>
+        f(x)=x²<br>
+        f(x+h)=(x+h)²<br><br>
+
+        lim h→0 [(x+h)²-x²]/h<br><br>
+
+        = lim h→0 [x²+2xh+h²-x²]/h<br><br>
+
+        = lim h→0 [2xh+h²]/h<br><br>
+
+        = lim h→0 (2x+h)<br><br>
+
+        = 2x+0<br><br>
+
+        <div class="hasil">
+        Hasil = 2x
+        </div>
+        `;
+    }
+
+    else if(f==="3x^2"){
+
+        html=`
+        <b>Diketahui:</b><br>
+        f(x)=3x²<br>
+        f(x+h)=3(x+h)²<br><br>
+
+        lim h→0 [3(x+h)²-3x²]/h<br><br>
+
+        = lim h→0 [3(x²+2xh+h²)-3x²]/h<br><br>
+
+        = lim h→0 [3x²+6xh+3h²-3x²]/h<br><br>
+
+        = lim h→0 [6xh+3h²]/h<br><br>
+
+        = lim h→0 (6x+3h)<br><br>
+
+        = 6x+0<br><br>
+
+        <div class="hasil">
+        Hasil = 6x
+        </div>
+        `;
+    }
+
+    else if(f==="5"){
+
+        html=`
+        <b>Diketahui:</b><br>
+        f(x)=5<br>
+        f(x+h)=5<br><br>
+
+        lim h→0 (5-5)/h<br><br>
+
+        = lim h→0 0/h<br><br>
+
+        = 0<br><br>
+
+        <div class="hasil">
+        Hasil = 0
+        </div>
+        `;
+    }
+
+    else{
+
+        html=`
+        Fungsi belum didukung.<br><br>
+
+        Contoh yang tersedia:<br>
+        x<br>
+        3x<br>
+        x^2<br>
+        3x^2<br>
+        5
+        `;
+    }
+
+    document.getElementById("hasil").innerHTML = html;
+}
+
+</script>
+
+</body>
+</html>
