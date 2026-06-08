@@ -34,7 +34,20 @@
 
 <body class="bg-white text-black min-h-screen flex justify-center p-3 sm:p-6 antialiased selection:bg-black selection:text-white">
 
+
+
 <div class="w-full max-w-4xl">
+
+    <div class="flex justify-between items-center mb-4">
+
+        <a href="index.html"
+           class="px-4 py-2 border-4 border-black bg-white font-bold uppercase text-sm shadow-neo hover:bg-black hover:text-white transition-all">
+            ← Kembali
+        </a>
+
+
+
+    </div>
 
     <!-- Header & Setup -->
     <div class="border-4 border-black p-4 sm:p-6 mb-6 bg-white shadow-neo">
@@ -107,7 +120,15 @@ function str(f){
     if(f.den===1) return f.num.toString();
     return f.num + "/" + f.den;
 }
+function openAbout(){
+    document.getElementById("aboutModal").classList.remove("hidden");
+    document.getElementById("aboutModal").classList.add("flex");
+}
 
+function closeAbout(){
+    document.getElementById("aboutModal").classList.remove("flex");
+    document.getElementById("aboutModal").classList.add("hidden");
+}
 // --- CORE LOGIC ---
 function buatMatriks(){
     let r = parseInt(rows.value);
